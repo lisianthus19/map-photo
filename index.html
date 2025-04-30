@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Map Photo Battle</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body, #map { margin: 0; padding: 0; height: 100%; }
+    #distanceDisplay {
+      position: absolute; top: 10px; left: 10px; z-index: 999;
+      background: white; padding: 8px; border-radius: 8px;
+    }
+    .heart-popup {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+      font-size: 48px;
+      color: red;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<div id="distanceDisplay">距离：0 km</div>
+<div class="heart-popup" id="heartPopup">💖 心动时刻！</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const map = L.map('map').setView([31.59, 104.06], 5); // 中心：中国
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  // 兰州（marker1） & 广州（marker2）
+  let player1Pos = [36.0611, 103.8343]; // 兰州
+  let player2Pos = [23.1291, 113.2644]; // 广州
+
+  const icon1 = L.icon({
+    iconUrl: 'assets/photo1.jpg',
+    iconSize: [40, 40],
+  });
+
+  const icon2 = L.icon({
+    iconUrl: 'assets/photo2.jpg',
+    iconSize: [40, 40],
+  });
+
+  const marker1 = L.marker(player1Pos, { icon: icon1, draggable: false }).addTo(map);
+  const marker2 = L.marker(player2Pos, { icon: icon2, draggable: false }).addTo(map);
+
+  const line = L.polyline([player1Pos, player2Pos], { color: 'blue' }).addTo(map);
+
+  const display = document.getElementById('distanceDisplay');
+  const heartPopup = document.getElementById('heartPopup');
+
+  // 实时更新距离和连线颜色
+  function updateDistance() {
+    const distance = map.distance(marker1.getLatLng(), marker2.getLatLng()) / 1000;
+    display.innerText = `距离：${distance.toFixed(2)} km`;
+
+    // 改变连线颜色
+    let color = 'blue';
+    if (distance < 100) color = 'red';
+    else if (distance < 300) color = 'orange';
+    line.setStyle({ color });
+
+    // 更新连线
+    line.setLatLngs([marker1.getLatLng(), marker2.getLatLng()]);
+
+    // 心动画面
+    if (distance < 50) {
+      heartPopup.style.display = 'block';
+    } else {
+      heartPopup.style.display = 'none';
+    }
+  }
+
+  // 鼠标拖动 player1
+  map.on('mousemove', function (e) {
+    if (mouseDown) {
+      player1Pos = [e.latlng.lat, e.latlng.lng];
+      marker1.setLatLng(player1Pos);
+      updateDistance();
+    }
+  });
+
+  let mouseDown = false;
+  map.on('mousedown', () => mouseDown = true);
+  map.on('mouseup', () => mouseDown = false);
+
+  // 键盘移动 player2（WASD）
+  document.addEventListener('keydown', (e) => {
+    const step = 0.1;
+    switch (e.key.toLowerCase()) {
+      case 'w': player2Pos[0] += step; break;
+      case 's': player2Pos[0] -= step; break;
+      case 'a': player2Pos[1] -= step; break;
+      case 'd': player2Pos[1] += step; break;
+    }
+    marker2.setLatLng(player2Pos);
+    updateDistance();
+  });
+
+  updateDistance();
+</script>
+</body>
+</html>
